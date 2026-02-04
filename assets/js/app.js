@@ -12,53 +12,70 @@ let Hooks = {}
 Hooks.PriceChart = {
   mounted() {
     console.log("PriceChart hook mounted", this.el)
-    this.chart = new Chart(this.el, {
-      type: "line",
-      data: { 
-        labels: [], 
-        datasets: [{ 
-          data: [],
-          label: 'Price',
-          borderColor: 'rgb(34, 197, 94)',
-          backgroundColor: 'rgba(34, 197, 94, 0.1)',
-          tension: 0.1
-        }] 
-      },
-      options: { 
-        animation: false,
-        responsive: true,
-        maintainAspectRatio: true,
-        scales: {
-          x: {
-            ticks: { color: '#9ca3af' },
-            grid: { color: '#374151' }
-          },
-          y: {
-            ticks: { color: '#9ca3af' },
-            grid: { color: '#374151' }
-          }
+    
+    try {
+      this.chart = new Chart(this.el, {
+        type: "line",
+        data: { 
+          labels: [], 
+          datasets: [{ 
+            data: [],
+            label: 'Price',
+            borderColor: 'rgb(34, 197, 94)',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            tension: 0.1
+          }] 
         },
-        plugins: {
-          legend: {
-            labels: { color: '#9ca3af' }
+        options: { 
+          animation: false,
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: { color: '#9ca3af' },
+              grid: { color: '#374151' }
+            },
+            y: {
+              ticks: { color: '#9ca3af' },
+              grid: { color: '#374151' }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: { color: '#9ca3af' }
+            }
           }
         }
-      }
-    })
-    console.log("PriceChart created successfully")
+      })
+      console.log("PriceChart created successfully")
 
-    this.handleEvent("price_update", ({ prices }) => {
-      console.log("price_update received", prices?.length || 0, "prices")
-      if (prices && prices.length > 0) {
-        this.chart.data.labels = prices.map(p => new Date(p.ts).toLocaleTimeString())
-        this.chart.data.datasets[0].data = prices.map(p => p.price)
-        this.chart.update()
-      }
-    })
+       this.handleEvent("price_update", ({ prices }) => {
+         try {
+           console.log("[LIVE] price_update event received", prices)
+           console.log("Chart instance:", this.chart)
+           if (prices && Array.isArray(prices) && prices.length > 0) {
+             this.chart.data.labels = prices.map(p => {
+               const date = new Date(p.ts)
+               return date.toLocaleTimeString()
+             })
+             this.chart.data.datasets[0].data = prices.map(p => p.price)
+             this.chart.update('none')
+             console.log("[LIVE] PriceChart updated successfully", this.chart)
+           } else {
+             console.warn("[LIVE] PriceChart: Invalid or empty prices array", prices)
+           }
+         } catch (error) {
+           console.error("[LIVE] Error in price_update handler:", error, prices, this.chart)
+         }
+       })
+    } catch (error) {
+      console.error("Error creating PriceChart:", error)
+    }
   },
   
   destroyed() {
     if (this.chart) {
+      console.log("Destroying PriceChart")
       this.chart.destroy()
     }
   }
@@ -67,53 +84,70 @@ Hooks.PriceChart = {
 Hooks.VolumeChart = {
   mounted() {
     console.log("VolumeChart hook mounted", this.el)
-    this.chart = new Chart(this.el, {
-      type: "bar",
-      data: { 
-        labels: [], 
-        datasets: [{ 
-          data: [],
-          label: 'Volume',
-          backgroundColor: 'rgba(59, 130, 246, 0.6)',
-          borderColor: 'rgb(59, 130, 246)',
-          borderWidth: 1
-        }] 
-      },
-      options: { 
-        animation: false,
-        responsive: true,
-        maintainAspectRatio: true,
-        scales: {
-          x: {
-            ticks: { color: '#9ca3af' },
-            grid: { color: '#374151' }
-          },
-          y: {
-            ticks: { color: '#9ca3af' },
-            grid: { color: '#374151' }
-          }
+    
+    try {
+      this.chart = new Chart(this.el, {
+        type: "bar",
+        data: { 
+          labels: [], 
+          datasets: [{ 
+            data: [],
+            label: 'Volume',
+            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+            borderColor: 'rgb(59, 130, 246)',
+            borderWidth: 1
+          }] 
         },
-        plugins: {
-          legend: {
-            labels: { color: '#9ca3af' }
+        options: { 
+          animation: false,
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: { color: '#9ca3af' },
+              grid: { color: '#374151' }
+            },
+            y: {
+              ticks: { color: '#9ca3af' },
+              grid: { color: '#374151' }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: { color: '#9ca3af' }
+            }
           }
         }
-      }
-    })
-    console.log("VolumeChart created successfully")
+      })
+      console.log("VolumeChart created successfully")
 
-    this.handleEvent("volume_update", ({ volumes }) => {
-      console.log("volume_update received", volumes?.length || 0, "volumes")
-      if (volumes && volumes.length > 0) {
-        this.chart.data.labels = volumes.map(v => new Date(v.ts).toLocaleTimeString())
-        this.chart.data.datasets[0].data = volumes.map(v => v.volume)
-        this.chart.update()
-      }
-    })
+      this.handleEvent("volume_update", ({ volumes }) => {
+        console.log("volume_update received:", volumes?.length || 0, "volumes", volumes)
+        
+        if (volumes && Array.isArray(volumes) && volumes.length > 0) {
+          try {
+            this.chart.data.labels = volumes.map(v => {
+              const date = new Date(v.ts)
+              return date.toLocaleTimeString()
+            })
+            this.chart.data.datasets[0].data = volumes.map(v => v.volume)
+            this.chart.update('none')
+            console.log("VolumeChart updated successfully")
+          } catch (error) {
+            console.error("Error updating VolumeChart:", error)
+          }
+        } else {
+          console.warn("VolumeChart: Invalid or empty volumes array")
+        }
+      })
+    } catch (error) {
+      console.error("Error creating VolumeChart:", error)
+    }
   },
   
   destroyed() {
     if (this.chart) {
+      console.log("Destroying VolumeChart")
       this.chart.destroy()
     }
   }
@@ -122,44 +156,58 @@ Hooks.VolumeChart = {
 Hooks.Sparkline = {
   mounted() {
     console.log("Sparkline hook mounted", this.el)
-    this.chart = new Chart(this.el, {
-      type: "line",
-      data: { 
-        labels: [], 
-        datasets: [{ 
-          data: [], 
-          borderWidth: 2,
-          borderColor: 'rgb(34, 197, 94)',
-          pointRadius: 0,
-          fill: true,
-          backgroundColor: 'rgba(34, 197, 94, 0.1)'
-        }] 
-      },
-      options: {
-        plugins: { legend: { display: false } },
-        scales: { 
-          x: { display: false }, 
-          y: { display: false } 
+    
+    try {
+      this.chart = new Chart(this.el, {
+        type: "line",
+        data: { 
+          labels: [], 
+          datasets: [{ 
+            data: [], 
+            borderWidth: 2,
+            borderColor: 'rgb(34, 197, 94)',
+            pointRadius: 0,
+            fill: true,
+            backgroundColor: 'rgba(34, 197, 94, 0.1)'
+          }] 
         },
-        animation: false,
-        responsive: true,
-        maintainAspectRatio: true
-      }
-    })
-    console.log("Sparkline created successfully")
+        options: {
+          plugins: { legend: { display: false } },
+          scales: { 
+            x: { display: false }, 
+            y: { display: false } 
+          },
+          animation: false,
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      })
+      console.log("Sparkline created successfully")
 
-    this.handleEvent("spark_update", ({ prices }) => {
-      console.log("spark_update received", prices?.length || 0, "prices")
-      if (prices && prices.length > 0) {
-        this.chart.data.labels = prices.map(p => p.ts)
-        this.chart.data.datasets[0].data = prices.map(p => p.price)
-        this.chart.update()
-      }
-    })
+      this.handleEvent("spark_update", ({ prices }) => {
+        console.log("spark_update received:", prices?.length || 0, "prices")
+        
+        if (prices && Array.isArray(prices) && prices.length > 0) {
+          try {
+            this.chart.data.labels = prices.map(p => p.ts)
+            this.chart.data.datasets[0].data = prices.map(p => p.price)
+            this.chart.update('none')
+            console.log("Sparkline updated successfully")
+          } catch (error) {
+            console.error("Error updating Sparkline:", error)
+          }
+        } else {
+          console.warn("Sparkline: Invalid or empty prices array")
+        }
+      })
+    } catch (error) {
+      console.error("Error creating Sparkline:", error)
+    }
   },
   
   destroyed() {
     if (this.chart) {
+      console.log("Destroying Sparkline")
       this.chart.destroy()
     }
   }
@@ -175,7 +223,7 @@ const liveSocket = new LiveSocket("/live", Socket, {
   hooks: Hooks,
 })
 
-console.log("LiveSocket initialized")
+console.log("LiveSocket initialized with hooks")
 
 // Show progress bar on live navigation and form submits
 topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})

@@ -1,0 +1,40 @@
+<div class="grid grid-cols-4 gap-4 p-6 bg-zinc-900 text-white">
+
+  <!-- Last Price Card -->
+  <div class="col-span-1 bg-zinc-800 rounded-xl p-4">
+    <p class="text-zinc-400 text-sm">BTC / USDT</p>
+    <p class="text-4xl font-bold text-green-400">
+      $<%= @last_price %>
+    </p>
+  </div>
+
+  <!-- Mini Sparkline -->
+  <div class="col-span-1 bg-zinc-800 rounded-xl p-4">
+    <canvas id="sparkline" phx-hook="Sparkline"></canvas>
+  </div>
+
+  <!-- Price Line -->
+  <div class="col-span-2 bg-zinc-800 rounded-xl p-4">
+    <canvas id="price-chart" phx-hook="PriceChart"></canvas>
+  </div>
+
+  <!-- Volume Bars -->
+  <div class="col-span-3 bg-zinc-800 rounded-xl p-4">
+    <canvas id="volume-chart" phx-hook="VolumeChart"></canvas>
+  </div>
+
+  <!-- Trade Tape -->
+  <div class="col-span-1 bg-zinc-800 rounded-xl p-4">
+    <h3 class="text-sm text-zinc-400 mb-2">Trades</h3>
+    <ul class="text-xs font-mono space-y-1">
+      <%= for t <- @trades do %>
+        <li class="flex justify-between">
+          <span>$<%= t.price %></span>
+          <span class="text-zinc-400"><%= t.volume %></span>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+
+</div>
+

@@ -4,7 +4,7 @@ defmodule LiveMarketWeb.MarketLive do
   @impl true 
   def mount(_params, _session, socket) do
     if connected?(socket) do
-      :timer.send_interval(500, self(), :flush)
+      :timer.send_interval(5000, self(), :flush)
       Phoenix.PubSub.subscribe(LiveMarket.PubSub, "finnhub:stream")
 
       LiveMarket.FinnhubSocket.subscribe("AAPL")
@@ -24,14 +24,27 @@ defmodule LiveMarketWeb.MarketLive do
 
   @impl true
   def handle_info({:finnhub_msg, raw}, socket) do
-  {:ok, %{"data" => ticks}} = Jason.decode(raw)
+    case Jason.decode(raw) do
+      {:ok, %{"type" => "ping"}} ->
+        {:noreply, socket}
 
-  socket =
-    Enum.reduce(ticks, socket, fn t, acc ->
-      process_tick(acc, t)
-    end)
+      {:ok, %{"data" => ticks}} when is_list(ticks) ->
+        socket =
+          Enum.reduce(ticks, socket, fn t, acc ->
+            process_tick(acc, t)
+          end)
+          {:noreply, socket}
+      {:ok, %{"type" => type}} ->
+        IO.inspect(type, label: "Unhandled type")
+        {:noreply, socket}
 
-  {:noreply, socket}
+      {:error, reason} ->
+        IO.inspect(reason, label: "Failed to decode Finnhub Message")
+
+      _ ->
+        {:noreply, socket}
+
+    end
 end
 
   def handle_info(:flush, socket) do

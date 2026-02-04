@@ -1,42 +1,74 @@
-<div class="grid grid-cols-4 gap-4 p-6 bg-zinc-900 text-white min-h-screen">
+<div class="px-6 pt-4 pb-2 bg-zinc-900 text-white">
+  <div class="flex gap-4 pb-2 border-b border-zinc-800 items-center justify-start">
+    <span class="font-bold text-lg text-zinc-300 pr-4">Markets</span>
+    <%= for {symbol, label} <- [
+      {"BINANCE:BTCUSDT", "BTC / USDT"},
+      {"BINANCE:ETHUSDT", "ETH / USDT"},
+      {"AAPL", "AAPL"},
+      {"IC MARKETS:1", "IC MARKETS:1"}
+    ] do %>
+      <.link
+        phx-click="subscribe"
+        phx-value-symbol={symbol}
+        class={[
+          "px-4 py-2 rounded-lg transition",
+          (@current_symbol == symbol && "bg-green-600 text-white shadow font-semibold") ||
+            "bg-zinc-800 hover:bg-green-800 text-zinc-400 hover:text-white"
+        ]}
+      >
+        {label}
+      </.link>
+    <% end %>
+  </div>
+</div>
 
-  <!-- Last Price Card -->
+<div class="grid grid-cols-4 gap-4 p-6 bg-zinc-900 text-white min-h-screen">
+  
+<!-- Last Price Card -->
   <div class="col-span-1 bg-zinc-800 rounded-xl p-4">
-    <p class="text-zinc-400 text-sm">BTC / USDT</p>
+    <p class="text-zinc-400 text-sm">
+      {case @current_symbol do
+        "BINANCE:BTCUSDT" -> "BTC / USDT"
+        "BINANCE:ETHUSDT" -> "ETH / USDT"
+        "AAPL" -> "AAPL"
+        "IC MARKETS:1" -> "IC MARKETS:1"
+        _ -> @current_symbol
+      end}
+    </p>
     <p class="text-4xl font-bold text-green-400">
       <%= if @last_price do %>
-        $<%= Float.round(@last_price, 2) %>
+        ${:erlang.float_to_binary(@last_price * 1.0, decimals: 2)}
       <% else %>
         <span class="text-zinc-600">Waiting...</span>
       <% end %>
     </p>
   </div>
-
-  <!-- Mini Sparkline -->
+  
+<!-- Mini Sparkline -->
   <div class="col-span-1 bg-zinc-800 rounded-xl p-4">
     <p class="text-zinc-400 text-xs mb-2">24h Trend</p>
     <div class="h-24">
       <canvas id="sparkline" phx-hook="Sparkline" phx-update="ignore"></canvas>
     </div>
   </div>
-
-  <!-- Price Line Chart -->
+  
+<!-- Price Line Chart -->
   <div class="col-span-2 bg-zinc-800 rounded-xl p-4">
     <h3 class="text-sm text-zinc-400 mb-2">Price History</h3>
     <div class="h-48">
       <canvas id="price-chart" phx-hook="PriceChart" phx-update="ignore"></canvas>
     </div>
   </div>
-
-  <!-- Volume Bars -->
+  
+<!-- Volume Bars -->
   <div class="col-span-3 bg-zinc-800 rounded-xl p-4">
     <h3 class="text-sm text-zinc-400 mb-2">Volume</h3>
     <div class="h-48">
       <canvas id="volume-chart" phx-hook="VolumeChart" phx-update="ignore"></canvas>
     </div>
   </div>
-
-  <!-- Trade Tape -->
+  
+<!-- Trade Tape -->
   <div class="col-span-1 bg-zinc-800 rounded-xl p-4">
     <h3 class="text-sm text-zinc-400 mb-2">Recent Trades</h3>
     <%= if Enum.empty?(@trades) do %>
@@ -45,12 +77,15 @@
       <ul class="text-xs font-mono space-y-1 max-h-48 overflow-y-auto">
         <%= for t <- @trades do %>
           <li class="flex justify-between py-1 border-b border-zinc-700">
-            <span class="text-green-400">$<%= Float.round(t.price, 2) %></span>
-            <span class="text-zinc-400"><%= Float.round(t.volume, 4) %></span>
+            <span class="text-green-400">
+              ${:erlang.float_to_binary(t.price * 1.0, decimals: 2)}
+            </span>
+            <span class="text-zinc-400">
+              {:erlang.float_to_binary(t.volume * 1.0, decimals: 4)}
+            </span>
           </li>
         <% end %>
       </ul>
     <% end %>
   </div>
-
 </div>

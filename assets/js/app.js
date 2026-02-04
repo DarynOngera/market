@@ -1,36 +1,181 @@
-// If you want to use Phoenix channels, run `mix help phx.gen.channel`
-// to get started and then uncomment the line below.
-// import "./user_socket.js"
-
-// You can include dependencies in two ways.
-//
-// The simplest option is to put them in assets/vendor and
-// import them using relative paths:
-//
-//     import "../vendor/some-package.js"
-//
-// Alternatively, you can `npm install some-package --prefix assets` and import
-// them using a path starting with the package name:
-//
-//     import "some-package"
-//
-// If you have dependencies that try to import CSS, esbuild will generate a separate `app.css` file.
-// To load it, simply add a second `<link>` to your `root.html.heex` file.
-
 // Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
 import "phoenix_html"
 // Establish Phoenix Socket and LiveView configuration.
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
-import {hooks as colocatedHooks} from "phoenix-colocated/live_market"
 import topbar from "../vendor/topbar"
+import Chart from "chart.js/auto"
+
+// Define local hooks
+let Hooks = {}
+
+Hooks.PriceChart = {
+  mounted() {
+    console.log("PriceChart hook mounted", this.el)
+    this.chart = new Chart(this.el, {
+      type: "line",
+      data: { 
+        labels: [], 
+        datasets: [{ 
+          data: [],
+          label: 'Price',
+          borderColor: 'rgb(34, 197, 94)',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)',
+          tension: 0.1
+        }] 
+      },
+      options: { 
+        animation: false,
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+          x: {
+            ticks: { color: '#9ca3af' },
+            grid: { color: '#374151' }
+          },
+          y: {
+            ticks: { color: '#9ca3af' },
+            grid: { color: '#374151' }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: { color: '#9ca3af' }
+          }
+        }
+      }
+    })
+    console.log("PriceChart created successfully")
+
+    this.handleEvent("price_update", ({ prices }) => {
+      console.log("price_update received", prices?.length || 0, "prices")
+      if (prices && prices.length > 0) {
+        this.chart.data.labels = prices.map(p => new Date(p.ts).toLocaleTimeString())
+        this.chart.data.datasets[0].data = prices.map(p => p.price)
+        this.chart.update()
+      }
+    })
+  },
+  
+  destroyed() {
+    if (this.chart) {
+      this.chart.destroy()
+    }
+  }
+}
+
+Hooks.VolumeChart = {
+  mounted() {
+    console.log("VolumeChart hook mounted", this.el)
+    this.chart = new Chart(this.el, {
+      type: "bar",
+      data: { 
+        labels: [], 
+        datasets: [{ 
+          data: [],
+          label: 'Volume',
+          backgroundColor: 'rgba(59, 130, 246, 0.6)',
+          borderColor: 'rgb(59, 130, 246)',
+          borderWidth: 1
+        }] 
+      },
+      options: { 
+        animation: false,
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+          x: {
+            ticks: { color: '#9ca3af' },
+            grid: { color: '#374151' }
+          },
+          y: {
+            ticks: { color: '#9ca3af' },
+            grid: { color: '#374151' }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: { color: '#9ca3af' }
+          }
+        }
+      }
+    })
+    console.log("VolumeChart created successfully")
+
+    this.handleEvent("volume_update", ({ volumes }) => {
+      console.log("volume_update received", volumes?.length || 0, "volumes")
+      if (volumes && volumes.length > 0) {
+        this.chart.data.labels = volumes.map(v => new Date(v.ts).toLocaleTimeString())
+        this.chart.data.datasets[0].data = volumes.map(v => v.volume)
+        this.chart.update()
+      }
+    })
+  },
+  
+  destroyed() {
+    if (this.chart) {
+      this.chart.destroy()
+    }
+  }
+}
+
+Hooks.Sparkline = {
+  mounted() {
+    console.log("Sparkline hook mounted", this.el)
+    this.chart = new Chart(this.el, {
+      type: "line",
+      data: { 
+        labels: [], 
+        datasets: [{ 
+          data: [], 
+          borderWidth: 2,
+          borderColor: 'rgb(34, 197, 94)',
+          pointRadius: 0,
+          fill: true,
+          backgroundColor: 'rgba(34, 197, 94, 0.1)'
+        }] 
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: { 
+          x: { display: false }, 
+          y: { display: false } 
+        },
+        animation: false,
+        responsive: true,
+        maintainAspectRatio: true
+      }
+    })
+    console.log("Sparkline created successfully")
+
+    this.handleEvent("spark_update", ({ prices }) => {
+      console.log("spark_update received", prices?.length || 0, "prices")
+      if (prices && prices.length > 0) {
+        this.chart.data.labels = prices.map(p => p.ts)
+        this.chart.data.datasets[0].data = prices.map(p => p.price)
+        this.chart.update()
+      }
+    })
+  },
+  
+  destroyed() {
+    if (this.chart) {
+      this.chart.destroy()
+    }
+  }
+}
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+
+console.log("Registered hooks:", Object.keys(Hooks))
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: Hooks,
 })
+
+console.log("LiveSocket initialized")
 
 // Show progress bar on live navigation and form submits
 topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
@@ -81,61 +226,4 @@ if (process.env.NODE_ENV === "development") {
   })
 }
 
-import Chart from "chart.js/auto"
-
-let Hooks = {}
-
-Hooks.PriceChart = {
-  mounted() {
-    this.chart = new Chart(this.el, {
-      type: "line",
-      data: { labels: [], datasets: [{ data: [] }] },
-      options: { animation: false }
-    })
-
-    this.handleEvent("price_update", ({ prices }) => {
-      this.chart.data.labels = prices.map(p => p.ts)
-      this.chart.data.datasets[0].data = prices.map(p => p.price)
-      this.chart.update()
-    })
-  }
-}
-Hooks.VolumeChart = {
-  mounted() {
-    this.chart = new Chart(this.el, {
-      type: "bar",
-      data: { labels: [], datasets: [{ data: [] }] },
-      options: { animation: false }
-    })
-
-    this.handleEvent("volume_update", ({ volumes }) => {
-      this.chart.data.labels = volumes.map(v => v.ts)
-      this.chart.data.datasets[0].data = volumes.map(v => v.volume)
-      this.chart.update()
-    })
-  }
-}
-
-Hooks.Sparkline = {
-  mounted() {
-    this.chart = new Chart(this.el, {
-      type: "line",
-      data: { labels: [], datasets: [{ data: [], borderWidth: 1 }] },
-      options: {
-        plugins: { legend: { display: false } },
-        scales: { x: { display: false }, y: { display: false } },
-        animation: false
-      }
-    })
-
-    this.handleEvent("spark_update", ({ prices }) => {
-      this.chart.data.labels = prices.map(p => p.ts)
-      this.chart.data.datasets[0].data = prices.map(p => p.price)
-      this.chart.update()
-    })
-  }
-}
-
-
 export default Hooks
-
